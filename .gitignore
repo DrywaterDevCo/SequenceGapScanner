@@ -1,0 +1,32 @@
+# Build output
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+
+# Visual Studio cache / options
+.vs/
+*.user
+*.suo
+*.userosscache
+*.rsuser
+
+# NuGet
+*.nupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+
+# Publish / deploy output
+**/publish/
+**/PublishProfiles/
+
+# OS noise
+Thumbs.db
+.DS_Store
