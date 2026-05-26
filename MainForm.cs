@@ -30,13 +30,15 @@ public partial class MainForm : Form
 
     private void browseButton_Click(object sender, EventArgs e)
     {
-        using var dlg = new OpenFolderDialog
+        using var dlg = new FolderBrowserDialog
         {
-            Title     = "Select folder to scan",
-            Multiselect = false,
+            Description        = "Select folder to scan",
+            UseDescriptionForTitle = true,
+            ShowNewFolderButton    = false,
+            SelectedPath           = folderPathBox.Text.Trim(),
         };
         if (dlg.ShowDialog() == DialogResult.OK)
-            folderPathBox.Text = dlg.FolderName;
+            folderPathBox.Text = dlg.SelectedPath;
     }
 
     private void scanButton_Click(object sender, EventArgs e)
