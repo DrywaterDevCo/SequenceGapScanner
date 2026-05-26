@@ -6,6 +6,11 @@ public partial class MainForm : Form
     // so it inherits the ListView's resolved font.
     private Font _headerFont = null!;
 
+    // Retained after each scan so Export can write from the same data
+    private Dictionary<string, List<FileRecord>>? _lastResults;
+    private string _lastFolder = "";
+    private string _lastExtensions = "";
+
     private static readonly Color HeaderBack  = Color.FromArgb(60,  60,  80);
     private static readonly Color HeaderFore  = Color.White;
     private static readonly Color MissingBack = Color.FromArgb(255, 180, 180);
@@ -72,6 +77,11 @@ public partial class MainForm : Form
                 totalGaps += analyzed.Count(r => r.IsMissing);
             }
 
+            _lastResults    = results;
+            _lastFolder     = folder;
+            _lastExtensions = extInput;
+            exportButton.Enabled = true;
+
             PopulateListView(results);
             statusLabel.Text =
                 $"{groups.Count} group{(groups.Count == 1 ? "" : "s")} found  ·  " +
@@ -87,6 +97,69 @@ public partial class MainForm : Form
         finally
         {
             scanButton.Enabled = true;
+        }
+    }
+
+    // ── export ───────────────────────────────────────────────────────────────
+
+    private void exportButton_Click(object sender, EventArgs e)
+    {
+        if (_lastResults == null) return;
+
+        using var dlg = new SaveFileDialog
+        {
+            Title      = "Export Results",
+            Filter     = "Text file (*.txt)|*.txt",
+            DefaultExt = "txt",
+            FileName   = $"SequenceScan_{DateTime.Now:yyyyMMdd_HHmmss}.txt",
+        };
+        if (dlg.ShowDialog() != DialogResult.OK) return;
+
+        try
+        {
+            ExportToFile(dlg.FileName, _lastResults);
+            statusLabel.Text = $"Exported → {dlg.FileName}";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Export failed: {ex.Message}", "Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void ExportToFile(string path, Dictionary<string, List<FileRecord>> allGroups)
+    {
+        int totalFiles = allGroups.Values.Sum(g => g.Count(r => !r.IsMissing));
+        int totalGaps  = allGroups.Values.Sum(g => g.Count(r => r.IsMissing));
+
+        using var w = new StreamWriter(path, append: false, encoding: System.Text.Encoding.UTF8);
+
+        w.WriteLine("Sequence Gap Scanner — Export Report");
+        w.WriteLine($"Generated : {DateTime.Now:yyyy-MM-dd  HH:mm:ss}");
+        w.WriteLine($"Folder    : {_lastFolder}");
+        w.WriteLine($"Extensions: {(string.IsNullOrWhiteSpace(_lastExtensions) ? "(all)" : _lastExtensions)}");
+        w.WriteLine($"Summary   : {allGroups.Count} groups  ·  {totalFiles} files  ·  {totalGaps} gaps");
+        w.WriteLine(new string('═', 80));
+        w.WriteLine();
+
+        foreach (var (groupName, records) in allGroups)
+        {
+            int fileCount = records.Count(r => !r.IsMissing);
+            int gapCount  = records.Count(r => r.IsMissing);
+
+            w.WriteLine($"GROUP: {groupName}  ({fileCount} files" +
+                        (gapCount > 0 ? $"  ·  {gapCount} gaps" : "") + ")");
+            w.WriteLine(new string('─', 80));
+
+            foreach (var rec in records)
+            {
+                string tag = rec.IsMissing ? "  *** MISSING ***  " : "                   ";
+                w.WriteLine($"  {rec.SequenceNumber,6}  {tag}{rec.Filename}");
+                if (!rec.IsMissing)
+                    w.WriteLine($"          Path   : {rec.FullPath}");
+            }
+
+            w.WriteLine();
         }
     }
 

@@ -12,6 +12,7 @@ partial class MainForm
     private Label          extLabel;
     private TextBox        extFilterBox;
     private Button         scanButton;
+    private Button         exportButton;
     private ListView       resultsListView;
     private ColumnHeader   colSeqNum;
     private ColumnHeader   colFilename;
@@ -44,6 +45,7 @@ partial class MainForm
         extLabel        = new Label();
         extFilterBox    = new TextBox();
         scanButton      = new Button();
+        exportButton    = new Button();
         resultsListView = new ListView();
         colSeqNum       = new ColumnHeader();
         colFilename     = new ColumnHeader();
@@ -96,12 +98,20 @@ partial class MainForm
         scanButton.FlatAppearance.BorderSize = 0;
         scanButton.Click    += scanButton_Click;
 
+        exportButton.Text      = "Export…";
+        exportButton.Location  = new Point(468, 43);
+        exportButton.Size      = new Size(88, 27);
+        exportButton.FlatStyle = FlatStyle.Flat;
+        exportButton.Enabled   = false;
+        exportButton.Click    += exportButton_Click;
+
         topPanel.Controls.Add(folderLabel);
         topPanel.Controls.Add(folderPathBox);
         topPanel.Controls.Add(browseButton);
         topPanel.Controls.Add(extLabel);
         topPanel.Controls.Add(extFilterBox);
         topPanel.Controls.Add(scanButton);
+        topPanel.Controls.Add(exportButton);
 
         // ── resultsListView ──────────────────────────────────────────────────
         colSeqNum.Text  = "Sequence #";   colSeqNum.Width  = 90;
