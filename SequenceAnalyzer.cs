@@ -2,8 +2,6 @@ namespace SequenceGapScanner;
 
 public static class SequenceAnalyzer
 {
-    // Cap how many individual missing-file rows we generate per gap to avoid
-    // flooding the list view when a huge block of files is absent.
     private const int MaxIndividualMissing = 200;
 
     private record NumericSegment(int Start, int Length, int Value);
@@ -20,7 +18,6 @@ public static class SequenceAnalyzer
 
         if (maxSlots == 0)
         {
-            // No numbers anywhere — just return in scan order, numbered sequentially
             for (int i = 0; i < files.Count; i++)
                 files[i].SequenceNumber = i + 1;
             return files;
@@ -34,36 +31,41 @@ public static class SequenceAnalyzer
             files[i].SequenceNumber = dominant < segs.Count ? segs[dominant].Value : 0;
         }
 
-        // Pair files with their segment list, then sort by sequence number
         var paired = files
             .Zip(allSegments, (f, s) => (File: f, Segs: s))
             .OrderBy(p => p.File.SequenceNumber)
+            .ToList();
+
+        // One template per distinct extension so missing rows are generated
+        // for every file type that belongs to a sequence position.
+        var templates = paired
+            .GroupBy(p => p.File.Extension, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
             .ToList();
 
         var result = new List<FileRecord>();
         for (int i = 0; i < paired.Count; i++)
         {
             result.Add(paired[i].File);
-
             if (i >= paired.Count - 1) continue;
 
-            int cur = paired[i].File.SequenceNumber;
-            int nxt = paired[i + 1].File.SequenceNumber;
+            int cur     = paired[i].File.SequenceNumber;
+            int nxt     = paired[i + 1].File.SequenceNumber;
             int gapSize = nxt - cur - 1;
-
             if (gapSize <= 0) continue;
 
             if (gapSize <= MaxIndividualMissing)
             {
                 for (int missing = cur + 1; missing < nxt; missing++)
-                    result.Add(BuildMissingRecord(paired[i].File, paired[i].Segs, dominant, missing));
+                {
+                    foreach (var tmpl in templates)
+                        result.Add(BuildMissingRecord(tmpl.File, tmpl.Segs, dominant, missing));
+                }
             }
             else
             {
-                // Summarise large gaps with start + end placeholders
-                result.Add(BuildMissingRecord(paired[i].File, paired[i].Segs, dominant, cur + 1));
-                result.Add(BuildGapSummaryRecord(paired[i].File, cur + 2, nxt - 1));
-                result.Add(BuildMissingRecord(paired[i].File, paired[i].Segs, dominant, nxt - 1));
+                // Large gap: one summary record to avoid flooding the list
+                result.Add(BuildGapSummaryRecord(paired[i].File, cur + 1, nxt - 1));
             }
         }
 
@@ -82,31 +84,23 @@ public static class SequenceAnalyzer
                 .Select(s => s[slot].Value)
                 .Distinct()
                 .Count();
-
-            if (distinct > bestDistinct)
-            {
-                bestDistinct = distinct;
-                bestSlot = slot;
-            }
+            if (distinct > bestDistinct) { bestDistinct = distinct; bestSlot = slot; }
         }
         return bestSlot;
     }
 
     private static FileRecord BuildMissingRecord(
-        FileRecord template,
-        List<NumericSegment> templateSegs,
-        int dominantSlot,
-        int missingNumber)
+        FileRecord template, List<NumericSegment> templateSegs,
+        int dominantSlot, int missingNumber)
     {
         string filename;
         if (dominantSlot < templateSegs.Count)
         {
-            var seg     = templateSegs[dominantSlot];
-            var base_   = Path.GetFileNameWithoutExtension(template.Filename);
-            var ext     = Path.GetExtension(template.Filename);
-            var numStr  = missingNumber.ToString().PadLeft(seg.Length, '0');
-            var newBase = base_[..seg.Start] + numStr + base_[(seg.Start + seg.Length)..];
-            filename = $"[MISSING: {newBase}{ext}]";
+            var seg    = templateSegs[dominantSlot];
+            var base_  = Path.GetFileNameWithoutExtension(template.Filename);
+            var ext    = Path.GetExtension(template.Filename);
+            var numStr = missingNumber.ToString().PadLeft(seg.Length, '0');
+            filename   = $"[MISSING: {base_[..seg.Start]}{numStr}{base_[(seg.Start + seg.Length)..]}{ext}]";
         }
         else
         {
@@ -131,7 +125,7 @@ public static class SequenceAnalyzer
             Group          = template.Group,
             Extension      = template.Extension,
             SequenceNumber = from,
-            Filename       = $"[MISSING: {to - from + 1} files — #{from} through #{to}]",
+            Filename       = $"[MISSING: {to - from + 1} files -- #{from} through #{to}]",
         };
     }
 

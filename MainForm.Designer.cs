@@ -85,12 +85,12 @@ partial class MainForm
         extLabel.AutoSize  = true;
         extLabel.Location  = new Point(8, 47);
 
-        extFilterBox.Location       = new Point(84, 44);
-        extFilterBox.Size           = new Size(280, 23);
-        extFilterBox.PlaceholderText = ".mp4, .mov   (blank = all)";
+        extFilterBox.Location        = new Point(105, 44);
+        extFilterBox.Size            = new Size(280, 23);
+        extFilterBox.PlaceholderText = ".mp4, .mov   -.xml to exclude   (blank = all)";
 
         scanButton.Text      = "Scan";
-        scanButton.Location  = new Point(372, 43);
+        scanButton.Location  = new Point(393, 43);
         scanButton.Size      = new Size(88, 27);
         scanButton.BackColor = Color.FromArgb(0, 120, 215);
         scanButton.ForeColor = Color.White;
@@ -99,7 +99,7 @@ partial class MainForm
         scanButton.Click    += scanButton_Click;
 
         exportButton.Text      = "Export…";
-        exportButton.Location  = new Point(468, 43);
+        exportButton.Location  = new Point(489, 43);
         exportButton.Size      = new Size(88, 27);
         exportButton.FlatStyle = FlatStyle.Flat;
         exportButton.Enabled   = false;

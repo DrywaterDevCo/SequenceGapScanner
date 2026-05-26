@@ -2,26 +2,23 @@ namespace SequenceGapScanner;
 
 public partial class MainForm : Form
 {
-    // Shared bold font for group-header rows; created after InitializeComponent
-    // so it inherits the ListView's resolved font.
     private Font _headerFont = null!;
-
-    // Retained after each scan so Export can write from the same data
-    private Dictionary<string, List<FileRecord>>? _lastResults;
-    private string _lastFolder = "";
-    private string _lastExtensions = "";
 
     private static readonly Color HeaderBack  = Color.FromArgb(60,  60,  80);
     private static readonly Color HeaderFore  = Color.White;
     private static readonly Color MissingBack = Color.FromArgb(255, 180, 180);
     private static readonly Color MissingFore = Color.DarkRed;
 
-    // Two alternating base colours for even/odd groups
     private static readonly Color[] GroupPalette =
     {
         Color.FromArgb(245, 245, 255),
         Color.FromArgb(245, 255, 245),
     };
+
+    // Retained after each scan so Export can write from the same data
+    private Dictionary<string, List<FileRecord>>? _lastResults;
+    private string _lastFolder     = "";
+    private string _lastExtensions = "";
 
     public MainForm()
     {
@@ -33,13 +30,13 @@ public partial class MainForm : Form
 
     private void browseButton_Click(object sender, EventArgs e)
     {
-        using var dlg = new FolderBrowserDialog
+        using var dlg = new OpenFolderDialog
         {
-            Description        = "Select folder to scan",
-            UseDescriptionForTitle = true,
+            Title     = "Select folder to scan",
+            Multiselect = false,
         };
         if (dlg.ShowDialog() == DialogResult.OK)
-            folderPathBox.Text = dlg.SelectedPath;
+            folderPathBox.Text = dlg.FolderName;
     }
 
     private void scanButton_Click(object sender, EventArgs e)
@@ -53,7 +50,7 @@ public partial class MainForm : Form
         }
 
         resultsListView.Items.Clear();
-        statusLabel.Text = "Scanning…";
+        statusLabel.Text   = "Scanning...";
         scanButton.Enabled = false;
         Application.DoEvents();
 
@@ -67,14 +64,18 @@ public partial class MainForm : Form
             var files  = FileScanner.Scan(folder, extensions);
             var groups = GroupingEngine.Group(files);
 
-            int totalGaps = 0;
-            var results   = new Dictionary<string, List<FileRecord>>(StringComparer.OrdinalIgnoreCase);
+            int totalGapPositions = 0;
+            int totalMissingFiles = 0;
+            var results = new Dictionary<string, List<FileRecord>>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var (name, groupFiles) in groups)
             {
                 var analyzed = SequenceAnalyzer.AnalyzeGroup(groupFiles);
                 results[name] = analyzed;
-                totalGaps += analyzed.Count(r => r.IsMissing);
+
+                var missing = analyzed.Where(r => r.IsMissing).ToList();
+                totalMissingFiles += missing.Count;
+                totalGapPositions += missing.Select(r => r.SequenceNumber).Distinct().Count();
             }
 
             _lastResults    = results;
@@ -83,10 +84,15 @@ public partial class MainForm : Form
             exportButton.Enabled = true;
 
             PopulateListView(results);
+
+            var gapStr     = $"{totalGapPositions} gap{(totalGapPositions == 1 ? "" : "s")}";
+            var missingStr = totalMissingFiles != totalGapPositions
+                ? $"  |  {totalMissingFiles} missing file{(totalMissingFiles == 1 ? "" : "s")}"
+                : "";
             statusLabel.Text =
-                $"{groups.Count} group{(groups.Count == 1 ? "" : "s")} found  ·  " +
-                $"{files.Count} file{(files.Count == 1 ? "" : "s")}  ·  " +
-                $"{totalGaps} gap{(totalGaps == 1 ? "" : "s")} detected";
+                $"{results.Count} group{(results.Count == 1 ? "" : "s")}  |  " +
+                $"{files.Count} file{(files.Count == 1 ? "" : "s")}  |  " +
+                gapStr + missingStr;
         }
         catch (Exception ex)
         {
@@ -118,7 +124,7 @@ public partial class MainForm : Form
         try
         {
             ExportToFile(dlg.FileName, _lastResults);
-            statusLabel.Text = $"Exported → {dlg.FileName}";
+            statusLabel.Text = $"Exported -> {dlg.FileName}";
         }
         catch (Exception ex)
         {
@@ -129,36 +135,47 @@ public partial class MainForm : Form
 
     private void ExportToFile(string path, Dictionary<string, List<FileRecord>> allGroups)
     {
-        int totalFiles = allGroups.Values.Sum(g => g.Count(r => !r.IsMissing));
-        int totalGaps  = allGroups.Values.Sum(g => g.Count(r => r.IsMissing));
+        int totalFiles        = allGroups.Values.Sum(g => g.Count(r => !r.IsMissing));
+        int totalMissingFiles = allGroups.Values.Sum(g => g.Count(r => r.IsMissing));
+        int totalGapPositions = allGroups.Values.Sum(g =>
+            g.Where(r => r.IsMissing).Select(r => r.SequenceNumber).Distinct().Count());
 
-        using var w = new StreamWriter(path, append: false, encoding: System.Text.Encoding.UTF8);
+        // UTF-8 without BOM + ASCII-only characters so the file is readable in any editor
+        using var w = new StreamWriter(path, append: false,
+            encoding: new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-        w.WriteLine("Sequence Gap Scanner — Export Report");
-        w.WriteLine($"Generated : {DateTime.Now:yyyy-MM-dd  HH:mm:ss}");
-        w.WriteLine($"Folder    : {_lastFolder}");
-        w.WriteLine($"Extensions: {(string.IsNullOrWhiteSpace(_lastExtensions) ? "(all)" : _lastExtensions)}");
-        w.WriteLine($"Summary   : {allGroups.Count} groups  ·  {totalFiles} files  ·  {totalGaps} gaps");
-        w.WriteLine(new string('═', 80));
+        w.WriteLine("Sequence Gap Scanner -- Export Report");
+        w.WriteLine($"Generated  : {DateTime.Now:yyyy-MM-dd  HH:mm:ss}");
+        w.WriteLine($"Folder     : {_lastFolder}");
+        w.WriteLine($"Extensions : {(string.IsNullOrWhiteSpace(_lastExtensions) ? "(all)" : _lastExtensions)}");
+        w.WriteLine($"Summary    : {allGroups.Count} groups  |  {totalFiles} files  |  " +
+                    $"{totalGapPositions} gaps  |  {totalMissingFiles} missing files");
+        w.WriteLine(new string('=', 80));
         w.WriteLine();
 
         foreach (var (groupName, records) in allGroups)
         {
             int fileCount = records.Count(r => !r.IsMissing);
-            int gapCount  = records.Count(r => r.IsMissing);
+            int gapCount  = records.Where(r => r.IsMissing).Select(r => r.SequenceNumber).Distinct().Count();
+            int missCount = records.Count(r => r.IsMissing);
 
             w.WriteLine($"GROUP: {groupName}  ({fileCount} files" +
-                        (gapCount > 0 ? $"  ·  {gapCount} gaps" : "") + ")");
-            w.WriteLine(new string('─', 80));
+                        (gapCount > 0 ? $"  |  {gapCount} gap{(gapCount == 1 ? "" : "s")}  |  {missCount} missing" : "") +
+                        ")");
+            w.WriteLine(new string('-', 80));
 
             foreach (var rec in records)
             {
-                string tag = rec.IsMissing ? "  *** MISSING ***  " : "                   ";
-                w.WriteLine($"  {rec.SequenceNumber,6}  {tag}{rec.Filename}");
-                if (!rec.IsMissing)
+                if (rec.IsMissing)
+                {
+                    w.WriteLine($"  {rec.SequenceNumber,6}  *** MISSING ***  {rec.Filename}");
+                }
+                else
+                {
+                    w.WriteLine($"  {rec.SequenceNumber,6}                   {rec.Filename}");
                     w.WriteLine($"          Path   : {rec.FullPath}");
+                }
             }
-
             w.WriteLine();
         }
     }
@@ -174,12 +191,16 @@ public partial class MainForm : Form
         foreach (var (groupName, records) in allGroups)
         {
             int fileCount = records.Count(r => !r.IsMissing);
-            int gapCount  = records.Count(r => r.IsMissing);
+            int gapCount  = records.Where(r => r.IsMissing).Select(r => r.SequenceNumber).Distinct().Count();
+            int missCount = records.Count(r => r.IsMissing);
 
-            // ── Group header row ──────────────────────────────────────────
+            // Group header row
             var header = new ListViewItem($"  {groupName}");
-            header.SubItems.Add($"{fileCount} file{(fileCount == 1 ? "" : "s")}" +
-                                 (gapCount > 0 ? $"  ·  {gapCount} gap{(gapCount == 1 ? "" : "s")}" : ""));
+            header.SubItems.Add(
+                $"{fileCount} file{(fileCount == 1 ? "" : "s")}" +
+                (gapCount > 0
+                    ? $"  |  {gapCount} gap{(gapCount == 1 ? "" : "s")}  |  {missCount} missing"
+                    : ""));
             for (int c = 2; c < resultsListView.Columns.Count; c++)
                 header.SubItems.Add("");
             header.BackColor = HeaderBack;
@@ -187,7 +208,6 @@ public partial class MainForm : Form
             header.Font      = _headerFont;
             resultsListView.Items.Add(header);
 
-            // ── File / missing rows ───────────────────────────────────────
             var baseColor = GroupPalette[groupIndex % GroupPalette.Length];
             var altColor  = Color.FromArgb(
                 Math.Max(baseColor.R - 12, 0),
