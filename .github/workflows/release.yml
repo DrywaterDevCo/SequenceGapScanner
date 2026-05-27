@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish
+        run: >
+          dotnet publish SequenceGapScanner.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:EnableCompressionInSingleFile=true
+          -o ./publish
+
+      - name: Zip
+        run: |
+          $version = "${{ github.event.release.tag_name }}"
+          $files = Get-ChildItem ./publish -File | Where-Object { $_.Extension -ne ".pdb" }
+          Compress-Archive -Path $files.FullName -DestinationPath "SequenceGapScanner-${version}-win-x64.zip"
+        shell: pwsh
+
+      - name: Upload to release
+        run: |
+          $version = "${{ github.event.release.tag_name }}"
+          gh release upload $version "SequenceGapScanner-${version}-win-x64.zip"
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
