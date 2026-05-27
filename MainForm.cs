@@ -357,7 +357,7 @@ public partial class MainForm : Form
     private void menuGitHub_Click(object sender, EventArgs e) =>
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
-            FileName        = "https://github.com/DrywaterDevCo/SequenceGapScanner",
+            FileName        = "https://github.com/DrywaterDevCo/SequenceGapScanner/releases",
             UseShellExecute = true,
         });
 

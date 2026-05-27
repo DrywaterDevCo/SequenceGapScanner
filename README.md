@@ -1,10 +1,16 @@
 # Sequence Gap Scanner
 
-A lightweight Windows utility for video editors and media professionals. Quickly scan any folder to find missing files in numbered sequences — camera cards, render outputs, batch exports, dailies, and more.
+A lightweight Windows utility for video editors and media professionals. Quickly scan any folder to find missing files in numbered sequences — perfect for verifying that every memory card from a shoot has been fully offloaded.
+
+## The problem it solves
+
+After a long video shoot, you might have a dozen SD cards or CFexpress cards to offload. Each card contains sequentially numbered clips. Once they're all copied to your drive, how do you know you didn't miss a card — or drop a file mid-copy?
+
+Sequence Gap Scanner scans your footage folder and immediately flags any gaps in the sequence. If card 7 never made it off set, you'll know before you wrap.
+
+It works for any numbered file sequences — camera cards, render outputs, batch exports, dailies, VFX plates, and more.
 
 ## What it does
-
-When you're working with large numbered file sequences (e.g. `A001C001_250101_R1VX.mov`, `frame_0001.exr`, `IMG_4823.JPG`), a single missing file can cause problems downstream — broken timelines, failed renders, incomplete deliveries. Sequence Gap Scanner spots those gaps instantly.
 
 - Scans a folder and groups files by sequence
 - Highlights missing files in red
@@ -18,8 +24,8 @@ Go to the [Releases](https://github.com/DrywaterDevCo/SequenceGapScanner/release
 
 | File | Description |
 |------|-------------|
-| `SequenceGapScanner-vX.X.X-Setup.exe` | Installer — adds a Start Menu shortcut and uninstaller |
-| `SequenceGapScanner-vX.X.X-win-x64.zip` | Standalone — unzip and run, no install needed |
+| `SequenceGapScanner-vX.X.X-Installer-win-x64.exe` | Installer — adds a Start Menu shortcut and uninstaller |
+| `SequenceGapScanner-vX.X.X-Standalone-win-x64.zip` | Standalone — unzip and run, no install needed |
 
 No .NET installation required. Windows 10 or later.
 
