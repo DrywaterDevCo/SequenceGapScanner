@@ -36,13 +36,6 @@ public static class SequenceAnalyzer
             .OrderBy(p => p.File.SequenceNumber)
             .ToList();
 
-        // One template per distinct extension so missing rows are generated
-        // for every file type that belongs to a sequence position.
-        var templates = paired
-            .GroupBy(p => p.File.Extension, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.First())
-            .ToList();
-
         var result = new List<FileRecord>();
         for (int i = 0; i < paired.Count; i++)
         {
@@ -57,10 +50,7 @@ public static class SequenceAnalyzer
             if (gapSize <= MaxIndividualMissing)
             {
                 for (int missing = cur + 1; missing < nxt; missing++)
-                {
-                    foreach (var tmpl in templates)
-                        result.Add(BuildMissingRecord(tmpl.File, tmpl.Segs, dominant, missing));
-                }
+                    result.Add(BuildMissingRecord(paired[i].File, paired[i].Segs, dominant, missing));
             }
             else
             {
