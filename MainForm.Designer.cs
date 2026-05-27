@@ -32,6 +32,7 @@ partial class MainForm
     private ToolStripMenuItem    menuAbout;
     private ToolStripMenuItem    menuTip;
     private ToolStripMenuItem    menuGitHub;
+    private ToolStripMenuItem    menuReadMe;
     private ToolStripSeparator   menuHelpSep;
     private ToolStripMenuItem    menuNicolasCage;
 
@@ -72,6 +73,7 @@ partial class MainForm
         menuAbout        = new ToolStripMenuItem("About Sequence Gap Scanner");
         menuTip          = new ToolStripMenuItem("Tip the Author ♥");
         menuGitHub       = new ToolStripMenuItem("View on GitHub");
+        menuReadMe       = new ToolStripMenuItem("ReadMe");
         menuHelpSep      = new ToolStripSeparator();
         menuNicolasCage  = new ToolStripMenuItem("Nicolas Cage");
         fileContextMenu      = new ContextMenuStrip();
@@ -177,10 +179,11 @@ partial class MainForm
         menuAbout.Click       += menuAbout_Click;
         menuTip.Click         += menuTip_Click;
         menuGitHub.Click      += menuGitHub_Click;
+        menuReadMe.Click      += menuReadMe_Click;
         menuNicolasCage.Click += menuNicolasCage_Click;
         helpMenuItem.DropDownItems.AddRange(new ToolStripItem[]
         {
-            menuAbout, menuTip, menuGitHub, menuHelpSep, menuNicolasCage
+            menuAbout, menuTip, menuGitHub, menuReadMe, menuHelpSep, menuNicolasCage
         });
         mainMenu.Items.Add(helpMenuItem);
 

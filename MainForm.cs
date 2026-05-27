@@ -354,6 +354,13 @@ public partial class MainForm : Form
             MessageBoxIcon.Information);
     }
 
+    private void menuReadMe_Click(object sender, EventArgs e) =>
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName        = "https://github.com/DrywaterDevCo/SequenceGapScanner#readme",
+            UseShellExecute = true,
+        });
+
     private void menuGitHub_Click(object sender, EventArgs e) =>
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
