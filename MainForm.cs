@@ -10,7 +10,7 @@ public partial class MainForm : Form
 
     private Font _headerFont = null!;
 
-    private static readonly Color HeaderBack  = Color.FromArgb(60,  60,  80);
+    private static readonly Color HeaderBack  = Color.FromArgb(15, 90, 50);
     private static readonly Color HeaderFore  = Color.White;
     private static readonly Color MissingBack = Color.FromArgb(255, 180, 180);
     private static readonly Color MissingFore = Color.DarkRed;
@@ -432,10 +432,17 @@ public partial class MainForm : Form
             header.SubItems.Add(baseSummary + stateSuffix);
             for (int c = 2; c < resultsListView.Columns.Count; c++)
                 header.SubItems.Add("");
-            header.BackColor = gapCount > 0 ? Color.FromArgb(80, 30, 30) : HeaderBack;
-            header.ForeColor = HeaderFore;
-            header.Font      = _headerFont;
-            header.Tag       = groupName;
+            header.BackColor   = gapCount > 0 ? Color.FromArgb(80, 30, 30) : HeaderBack;
+            header.ForeColor   = HeaderFore;
+            header.Font        = _headerFont;
+            header.Tag         = groupName;
+            header.ToolTipText = state switch
+            {
+                GroupExpand.Collapsed  when gapCount > 0 => "Click to show missing files only  •  Click again to show all files",
+                GroupExpand.Collapsed                    => "Click to expand and show all files",
+                GroupExpand.ErrorsOnly                   => "Click to show all files  •  Click again to collapse",
+                _                                        => "Click to collapse",
+            };
             resultsListView.Items.Add(header);
 
             if (state == GroupExpand.Collapsed)

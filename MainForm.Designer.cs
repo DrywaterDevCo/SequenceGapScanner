@@ -163,9 +163,10 @@ partial class MainForm
 
         resultsListView.Dock      = DockStyle.Fill;
         resultsListView.View      = View.Details;
-        resultsListView.FullRowSelect = true;
-        resultsListView.GridLines     = true;
-        resultsListView.Font          = new Font("Segoe UI", 9f);
+        resultsListView.FullRowSelect    = true;
+        resultsListView.GridLines        = true;
+        resultsListView.ShowItemToolTips = true;
+        resultsListView.Font             = new Font("Segoe UI", 9f);
         resultsListView.Columns.AddRange(new[]
         {
             colSeqNum, colFilename, colGroup, colFullPath, colCreated, colModified
