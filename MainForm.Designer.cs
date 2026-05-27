@@ -31,6 +31,8 @@ partial class MainForm
     private ToolStripMenuItem    helpMenuItem;
     private ToolStripMenuItem    menuAbout;
     private ToolStripMenuItem    menuTip;
+    private ToolStripSeparator   menuHelpSep;
+    private ToolStripMenuItem    menuNicolasCage;
 
     protected override void Dispose(bool disposing)
     {
@@ -68,6 +70,8 @@ partial class MainForm
         helpMenuItem     = new ToolStripMenuItem("Help");
         menuAbout        = new ToolStripMenuItem("About Sequence Gap Scanner");
         menuTip          = new ToolStripMenuItem("Tip the Author ♥");
+        menuHelpSep      = new ToolStripSeparator();
+        menuNicolasCage  = new ToolStripMenuItem("Nicolas Cage");
         fileContextMenu      = new ContextMenuStrip();
         menuRevealInExplorer = new ToolStripMenuItem("Reveal in Explorer");
         menuCopyPath         = new ToolStripMenuItem("Copy Full Path");
@@ -168,9 +172,13 @@ partial class MainForm
         resultsListView.DoubleClick += resultsListView_DoubleClick;
 
         // ── main menu ────────────────────────────────────────────────────────
-        menuAbout.Click += menuAbout_Click;
-        menuTip.Click   += menuTip_Click;
-        helpMenuItem.DropDownItems.AddRange(new ToolStripItem[] { menuAbout, menuTip });
+        menuAbout.Click       += menuAbout_Click;
+        menuTip.Click         += menuTip_Click;
+        menuNicolasCage.Click += menuNicolasCage_Click;
+        helpMenuItem.DropDownItems.AddRange(new ToolStripItem[]
+        {
+            menuAbout, menuTip, menuHelpSep, menuNicolasCage
+        });
         mainMenu.Items.Add(helpMenuItem);
 
         // ── statusStrip ──────────────────────────────────────────────────────

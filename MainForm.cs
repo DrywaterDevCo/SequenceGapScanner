@@ -2,7 +2,7 @@ namespace SequenceGapScanner;
 
 public partial class MainForm : Form
 {
-    private const string AppVersion   = "1.0.0";
+    private const string AppVersion   = "1.1.0";
     private const string ReleasesApi  = "https://api.github.com/repos/DrywaterDevCo/SequenceGapScanner/releases/latest";
     private const string TipUrl       = "https://buymeacoffee.com/drywater";
 
@@ -353,6 +353,9 @@ public partial class MainForm : Form
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
     }
+
+    private void menuNicolasCage_Click(object sender, EventArgs e) =>
+        EasterEgg.Show(this);
 
     private void menuTip_Click(object sender, EventArgs e)
     {
