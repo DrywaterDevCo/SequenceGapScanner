@@ -8,5 +8,6 @@
     <ApplicationDefaultFont>Segoe UI, 9pt</ApplicationDefaultFont>
     <AssemblyName>SequenceGapScanner</AssemblyName>
     <RootNamespace>SequenceGapScanner</RootNamespace>
+    <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
 </Project>

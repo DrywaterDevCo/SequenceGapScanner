@@ -38,6 +38,7 @@ public partial class MainForm : Form
         InitializeComponent();
         _headerFont = new Font(resultsListView.Font, FontStyle.Bold);
         this.Text   = $"Sequence Gap Scanner  v{AppVersion}";
+        this.Icon   = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         AdjustRows();
         LoadSettings();
         statusLabel.Click += statusLabel_Click;

@@ -19,6 +19,7 @@ DefaultDirName={autopf}\SequenceGapScanner
 DefaultGroupName={#MyAppName}
 OutputDir=installer
 OutputBaseFilename=SequenceGapScanner-Setup
+SetupIconFile=app.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
