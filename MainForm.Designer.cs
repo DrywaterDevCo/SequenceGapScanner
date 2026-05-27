@@ -22,6 +22,15 @@ partial class MainForm
     private ColumnHeader   colModified;
     private StatusStrip    statusStrip;
     private ToolStripStatusLabel statusLabel;
+    private ContextMenuStrip     fileContextMenu;
+    private ToolStripMenuItem    menuRevealInExplorer;
+    private ToolStripMenuItem    menuCopyPath;
+    private ToolStripSeparator   menuSep;
+    private ToolStripMenuItem    menuCopyExpectedName;
+    private MenuStrip            mainMenu;
+    private ToolStripMenuItem    helpMenuItem;
+    private ToolStripMenuItem    menuAbout;
+    private ToolStripMenuItem    menuTip;
 
     protected override void Dispose(bool disposing)
     {
@@ -45,16 +54,25 @@ partial class MainForm
         extLabel        = new Label();
         extFilterBox    = new TextBox();
         scanButton      = new Button();
-        exportButton    = new Button();
-        resultsListView = new ListView();
-        colSeqNum       = new ColumnHeader();
-        colFilename     = new ColumnHeader();
-        colGroup        = new ColumnHeader();
-        colFullPath     = new ColumnHeader();
-        colCreated      = new ColumnHeader();
-        colModified     = new ColumnHeader();
-        statusStrip     = new StatusStrip();
-        statusLabel     = new ToolStripStatusLabel();
+        exportButton     = new Button();
+        resultsListView  = new ListView();
+        colSeqNum        = new ColumnHeader();
+        colFilename      = new ColumnHeader();
+        colGroup         = new ColumnHeader();
+        colFullPath      = new ColumnHeader();
+        colCreated       = new ColumnHeader();
+        colModified      = new ColumnHeader();
+        statusStrip      = new StatusStrip();
+        statusLabel      = new ToolStripStatusLabel();
+        mainMenu         = new MenuStrip();
+        helpMenuItem     = new ToolStripMenuItem("Help");
+        menuAbout        = new ToolStripMenuItem("About Sequence Gap Scanner");
+        menuTip          = new ToolStripMenuItem("Tip the Author ♥");
+        fileContextMenu      = new ContextMenuStrip();
+        menuRevealInExplorer = new ToolStripMenuItem("Reveal in Explorer");
+        menuCopyPath         = new ToolStripMenuItem("Copy Full Path");
+        menuSep              = new ToolStripSeparator();
+        menuCopyExpectedName = new ToolStripMenuItem("Copy Expected Filename");
 
         topPanel.SuspendLayout();
         statusStrip.SuspendLayout();
@@ -71,13 +89,13 @@ partial class MainForm
         folderLabel.Location  = new Point(8, 14);
 
         folderPathBox.Location = new Point(64, 11);
-        folderPathBox.Size     = new Size(1060, 23);
-        folderPathBox.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+        folderPathBox.Size     = new Size(500, 23);
+        folderPathBox.Anchor   = AnchorStyles.Top | AnchorStyles.Left;
 
         browseButton.Text     = "Browse…";
-        browseButton.Location = new Point(1132, 10);
+        browseButton.Location = new Point(572, 10);
         browseButton.Size     = new Size(82, 25);
-        browseButton.Anchor   = AnchorStyles.Top | AnchorStyles.Right;
+        browseButton.Anchor   = AnchorStyles.Top | AnchorStyles.Left;
         browseButton.Click   += browseButton_Click;
 
         // Row 2 — extension filter + scan
@@ -86,12 +104,14 @@ partial class MainForm
         extLabel.Location  = new Point(8, 47);
 
         extFilterBox.Location        = new Point(105, 44);
-        extFilterBox.Size            = new Size(280, 23);
+        extFilterBox.Size            = new Size(300, 23);
+        extFilterBox.Anchor          = AnchorStyles.Top | AnchorStyles.Left;
         extFilterBox.PlaceholderText = ".mp4, .mov   -.xml to exclude   (blank = all)";
 
-        scanButton.Text      = "Scan";
-        scanButton.Location  = new Point(393, 43);
-        scanButton.Size      = new Size(88, 27);
+        scanButton.Text      = "Scan  (F5)";
+        scanButton.Location  = new Point(419, 43);
+        scanButton.Size      = new Size(96, 27);
+        scanButton.Anchor    = AnchorStyles.Top | AnchorStyles.Left;
         scanButton.BackColor = Color.FromArgb(0, 120, 215);
         scanButton.ForeColor = Color.White;
         scanButton.FlatStyle = FlatStyle.Flat;
@@ -99,15 +119,27 @@ partial class MainForm
         scanButton.Click    += scanButton_Click;
 
         exportButton.Text      = "Export…";
-        exportButton.Location  = new Point(489, 43);
+        exportButton.Location  = new Point(523, 43);
         exportButton.Size      = new Size(88, 27);
+        exportButton.Anchor    = AnchorStyles.Top | AnchorStyles.Left;
         exportButton.FlatStyle = FlatStyle.Flat;
         exportButton.Enabled   = false;
         exportButton.Click    += exportButton_Click;
 
+        // ── context menu ─────────────────────────────────────────────────────
+        menuRevealInExplorer.Click += menuRevealInExplorer_Click;
+        menuCopyPath.Click         += menuCopyPath_Click;
+        menuCopyExpectedName.Click += menuCopyExpectedName_Click;
+        fileContextMenu.Items.AddRange(new ToolStripItem[]
+        {
+            menuRevealInExplorer, menuCopyPath, menuSep, menuCopyExpectedName
+        });
+        fileContextMenu.Opening += fileContextMenu_Opening;
+
         topPanel.Controls.Add(folderLabel);
         topPanel.Controls.Add(folderPathBox);
         topPanel.Controls.Add(browseButton);
+        topPanel.Resize += topPanel_Resize;
         topPanel.Controls.Add(extLabel);
         topPanel.Controls.Add(extFilterBox);
         topPanel.Controls.Add(scanButton);
@@ -130,6 +162,16 @@ partial class MainForm
         {
             colSeqNum, colFilename, colGroup, colFullPath, colCreated, colModified
         });
+        resultsListView.ContextMenuStrip = fileContextMenu;
+        resultsListView.MouseClick  += resultsListView_MouseClick;
+        resultsListView.MouseDown   += resultsListView_MouseDown;
+        resultsListView.DoubleClick += resultsListView_DoubleClick;
+
+        // ── main menu ────────────────────────────────────────────────────────
+        menuAbout.Click += menuAbout_Click;
+        menuTip.Click   += menuTip_Click;
+        helpMenuItem.DropDownItems.AddRange(new ToolStripItem[] { menuAbout, menuTip });
+        mainMenu.Items.Add(helpMenuItem);
 
         // ── statusStrip ──────────────────────────────────────────────────────
         statusLabel.Text    = "Ready — select a folder and click Scan.";
@@ -144,14 +186,16 @@ partial class MainForm
 
         // ── form ─────────────────────────────────────────────────────────────
         this.Text          = "Sequence Gap Scanner";
-        this.ClientSize    = new Size(1280, 720);
+        this.ClientSize    = new Size(800, 600);
         this.MinimumSize   = new Size(800, 500);
         this.StartPosition = FormStartPosition.CenterScreen;
 
-        // Order: Fill → Bottom → Top (so Top is processed first by layout engine)
+        // Order: Fill → Bottom → Top → Menu (menu must be last / highest Z so it claims top)
         this.Controls.Add(resultsListView);
         this.Controls.Add(statusStrip);
         this.Controls.Add(topPanel);
+        this.Controls.Add(mainMenu);
+        this.MainMenuStrip = mainMenu;
 
         this.ResumeLayout(false);
         this.PerformLayout();

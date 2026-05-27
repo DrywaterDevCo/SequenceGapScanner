@@ -24,18 +24,35 @@ public static class GroupingEngine
     private static string DetermineGroupKey(FileRecord file, Dictionary<string, List<FileRecord>> existing)
     {
         var baseName = Path.GetFileNameWithoutExtension(file.Filename);
+        var ext      = string.IsNullOrEmpty(file.Extension) ? "NO EXT" : file.Extension;
 
         // Rule 1: underscore present with a non-empty prefix before it
         int underscoreIdx = baseName.IndexOf('_');
         if (underscoreIdx > 0)
-            return baseName[..underscoreIdx];
+        {
+            var prefixPart = baseName[..underscoreIdx];
+
+            // If the prefix is pure digits the sequence number leads the filename
+            // (e.g. 00061_Main2_TX_A.WAV). Use everything after that first underscore
+            // as the group name instead.
+            if (prefixPart.All(char.IsDigit))
+            {
+                var remainder = baseName[(underscoreIdx + 1)..];
+                if (!string.IsNullOrEmpty(remainder))
+                    return $"{remainder} ({ext})";
+            }
+            else
+            {
+                return $"{prefixPart} ({ext})";
+            }
+        }
 
         // Rule 2: leading alphabetic characters before the first digit
         var prefix = PrefixBeforeFirstDigit(baseName);
         if (!string.IsNullOrEmpty(prefix))
-            return prefix;
+            return $"{prefix} ({ext})";
 
-        // Rule 3: group by extension, disambiguate if needed
+        // Rule 3: no recognisable prefix — group by extension alone
         return ExtensionGroupName(file.Extension, existing);
     }
 

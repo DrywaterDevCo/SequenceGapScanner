@@ -2,6 +2,12 @@ namespace SequenceGapScanner;
 
 public partial class MainForm : Form
 {
+    private const string AppVersion   = "1.0.0";
+    private const string ReleasesApi  = "https://api.github.com/repos/DrywaterDevCo/SequenceGapScanner/releases/latest";
+    private const string TipUrl       = "https://buymeacoffee.com/drywater";
+
+    private string? _updateUrl;
+
     private Font _headerFont = null!;
 
     private static readonly Color HeaderBack  = Color.FromArgb(60,  60,  80);
@@ -20,10 +26,116 @@ public partial class MainForm : Form
     private string _lastFolder     = "";
     private string _lastExtensions = "";
 
+    private enum GroupExpand { Collapsed, ErrorsOnly, AllFiles }
+    private readonly Dictionary<string, GroupExpand> _groupState = new(StringComparer.OrdinalIgnoreCase);
+    private ListViewItem? _rightClickedItem;
+
+    private static readonly string SettingsPath = Path.Combine(
+        Application.UserAppDataPath, "settings.txt");
+
     public MainForm()
     {
         InitializeComponent();
         _headerFont = new Font(resultsListView.Font, FontStyle.Bold);
+        this.Text   = $"Sequence Gap Scanner  v{AppVersion}";
+        AdjustRows();
+        LoadSettings();
+        statusLabel.Click += statusLabel_Click;
+    }
+
+    protected override async void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        await CheckForUpdatesAsync();
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("SequenceGapScanner");
+            client.Timeout = TimeSpan.FromSeconds(6);
+
+            var json = await client.GetStringAsync(ReleasesApi);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var tag = doc.RootElement.GetProperty("tag_name").GetString()?.TrimStart('v') ?? "";
+            var url = doc.RootElement.GetProperty("html_url").GetString() ?? "";
+
+            if (Version.TryParse(tag, out var latest) &&
+                Version.TryParse(AppVersion, out var current) &&
+                latest > current)
+            {
+                _updateUrl = url;
+                statusLabel.Text         = $"Update available: v{tag} — click here to download";
+                statusLabel.ForeColor    = Color.Yellow;
+                statusLabel.IsLink       = true;
+            }
+        }
+        catch
+        {
+            // No internet or API unavailable — silently ignore
+        }
+    }
+
+    private void statusLabel_Click(object? sender, EventArgs e)
+    {
+        if (_updateUrl == null) return;
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName        = _updateUrl,
+            UseShellExecute = true,
+        });
+    }
+
+    private void topPanel_Resize(object? sender, EventArgs e) => AdjustRows();
+
+    private void AdjustRows()
+    {
+        const int gap = 6;
+        const int rightMargin = 8;
+
+        // Row 1 — folder path + Browse
+        browseButton.Left   = topPanel.ClientSize.Width - rightMargin - browseButton.Width;
+        folderPathBox.Width = browseButton.Left - folderPathBox.Left - gap;
+
+        // Row 2 — extensions + Scan + Export (pinned right)
+        exportButton.Left  = topPanel.ClientSize.Width - rightMargin - exportButton.Width;
+        scanButton.Left    = exportButton.Left - gap - scanButton.Width;
+        extFilterBox.Width = scanButton.Left - extFilterBox.Left - gap;
+    }
+
+    private void LoadSettings()
+    {
+        try
+        {
+            if (!File.Exists(SettingsPath)) return;
+            var lines = File.ReadAllLines(SettingsPath);
+            if (lines.Length > 0) folderPathBox.Text = lines[0];
+            if (lines.Length > 1) extFilterBox.Text  = lines[1];
+        }
+        catch { }
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
+            File.WriteAllLines(SettingsPath,
+                new[] { folderPathBox.Text.Trim(), extFilterBox.Text.Trim() });
+        }
+        catch { }
+    }
+
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        if (keyData == Keys.F5 && scanButton.Enabled)
+        {
+            scanButton_Click(this, EventArgs.Empty);
+            return true;
+        }
+        return base.ProcessCmdKey(ref msg, keyData);
     }
 
     // ── event handlers ───────────────────────────────────────────────────────
@@ -52,6 +164,7 @@ public partial class MainForm : Form
         }
 
         resultsListView.Items.Clear();
+        _groupState.Clear();
         statusLabel.Text   = "Scanning...";
         scanButton.Enabled = false;
         Application.DoEvents();
@@ -84,6 +197,7 @@ public partial class MainForm : Form
             _lastFolder     = folder;
             _lastExtensions = extInput;
             exportButton.Enabled = true;
+            SaveSettings();
 
             PopulateListView(results);
 
@@ -182,7 +296,94 @@ public partial class MainForm : Form
         }
     }
 
+    // ── context menu ─────────────────────────────────────────────────────────
+
+    private void resultsListView_MouseDown(object sender, MouseEventArgs e)
+    {
+        if (e.Button == MouseButtons.Right)
+            _rightClickedItem = resultsListView.GetItemAt(e.X, e.Y);
+    }
+
+    private void resultsListView_DoubleClick(object sender, EventArgs e)
+    {
+        if (resultsListView.FocusedItem?.Tag is FileRecord { IsMissing: false } rec)
+            RevealInExplorer(rec.FullPath);
+    }
+
+    private void fileContextMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (_rightClickedItem?.Tag is not FileRecord rec)
+        {
+            e.Cancel = true;
+            return;
+        }
+        menuRevealInExplorer.Enabled = !rec.IsMissing;
+        menuCopyPath.Enabled         = !rec.IsMissing;
+        menuCopyExpectedName.Visible  = rec.IsMissing;
+    }
+
+    private void menuRevealInExplorer_Click(object sender, EventArgs e)
+    {
+        if (_rightClickedItem?.Tag is FileRecord { IsMissing: false } rec)
+            RevealInExplorer(rec.FullPath);
+    }
+
+    private void menuCopyPath_Click(object sender, EventArgs e)
+    {
+        if (_rightClickedItem?.Tag is FileRecord { IsMissing: false } rec)
+            Clipboard.SetText(rec.FullPath);
+    }
+
+    private void menuCopyExpectedName_Click(object sender, EventArgs e)
+    {
+        if (_rightClickedItem?.Tag is FileRecord { IsMissing: true } rec)
+            Clipboard.SetText(rec.Filename);
+    }
+
+    private static void RevealInExplorer(string filePath) =>
+        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{filePath}\"");
+
+    private void menuAbout_Click(object sender, EventArgs e)
+    {
+        MessageBox.Show(
+            $"Sequence Gap Scanner\nVersion {AppVersion}\n\n" +
+            "Scans folders for missing files in numbered sequences.\n\n" +
+            "© 2026 Stephen Pickering | Drywater Dev Co.",
+            "About",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+    }
+
+    private void menuTip_Click(object sender, EventArgs e)
+    {
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName        = TipUrl,
+            UseShellExecute = true,
+        });
+    }
+
     // ── list-view population ─────────────────────────────────────────────────
+
+    private void resultsListView_MouseClick(object sender, MouseEventArgs e)
+    {
+        var item = resultsListView.GetItemAt(e.X, e.Y);
+        if (item?.Tag is not string groupName || _lastResults == null) return;
+        if (!_lastResults.TryGetValue(groupName, out var records)) return;
+
+        bool hasGaps = records.Any(r => r.IsMissing);
+        var current  = _groupState.GetValueOrDefault(groupName, GroupExpand.Collapsed);
+
+        _groupState[groupName] = current switch
+        {
+            GroupExpand.Collapsed  when hasGaps => GroupExpand.ErrorsOnly,
+            GroupExpand.Collapsed               => GroupExpand.AllFiles,
+            GroupExpand.ErrorsOnly              => GroupExpand.AllFiles,
+            _                                   => GroupExpand.Collapsed,
+        };
+
+        PopulateListView(_lastResults);
+    }
 
     private void PopulateListView(Dictionary<string, List<FileRecord>> allGroups)
     {
@@ -195,20 +396,35 @@ public partial class MainForm : Form
             int fileCount = records.Count(r => !r.IsMissing);
             int gapCount  = records.Where(r => r.IsMissing).Select(r => r.SequenceNumber).Distinct().Count();
             int missCount = records.Count(r => r.IsMissing);
+            var state     = _groupState.GetValueOrDefault(groupName, GroupExpand.Collapsed);
 
             // Group header row
-            var header = new ListViewItem($"  {groupName}");
-            header.SubItems.Add(
-                $"{fileCount} file{(fileCount == 1 ? "" : "s")}" +
+            var arrow = state switch
+            {
+                GroupExpand.ErrorsOnly => "▼!",
+                GroupExpand.AllFiles   => "▼ ",
+                _                      => "▶ ",
+            };
+            var header  = new ListViewItem($"  {arrow}  {groupName}");
+            var baseSummary = $"{fileCount} file{(fileCount == 1 ? "" : "s")}" +
                 (gapCount > 0
                     ? $"  |  {gapCount} gap{(gapCount == 1 ? "" : "s")}  |  {missCount} missing"
-                    : ""));
+                    : "  |  no gaps");
+            var stateSuffix = state == GroupExpand.ErrorsOnly ? "  [errors only — click for all]" : "";
+            header.SubItems.Add(baseSummary + stateSuffix);
             for (int c = 2; c < resultsListView.Columns.Count; c++)
                 header.SubItems.Add("");
-            header.BackColor = HeaderBack;
+            header.BackColor = gapCount > 0 ? Color.FromArgb(80, 30, 30) : HeaderBack;
             header.ForeColor = HeaderFore;
             header.Font      = _headerFont;
+            header.Tag       = groupName;
             resultsListView.Items.Add(header);
+
+            if (state == GroupExpand.Collapsed)
+            {
+                groupIndex++;
+                continue;
+            }
 
             var baseColor = GroupPalette[groupIndex % GroupPalette.Length];
             var altColor  = Color.FromArgb(
@@ -216,8 +432,12 @@ public partial class MainForm : Form
                 Math.Max(baseColor.G - 12, 0),
                 Math.Max(baseColor.B - 12, 0));
 
+            var rowsToShow = state == GroupExpand.ErrorsOnly
+                ? records.Where(r => r.IsMissing)
+                : records.AsEnumerable();
+
             int rowParity = 0;
-            foreach (var rec in records)
+            foreach (var rec in rowsToShow)
             {
                 var item = new ListViewItem(rec.SequenceNumber.ToString());
                 item.SubItems.Add(rec.Filename);
@@ -225,6 +445,7 @@ public partial class MainForm : Form
                 item.SubItems.Add(rec.FullPath);
                 item.SubItems.Add(rec.IsMissing ? "" : rec.CreatedDate.ToString("yyyy-MM-dd  HH:mm:ss"));
                 item.SubItems.Add(rec.IsMissing ? "" : rec.ModifiedDate.ToString("yyyy-MM-dd  HH:mm:ss"));
+                item.Tag = rec;
 
                 if (rec.IsMissing)
                 {
