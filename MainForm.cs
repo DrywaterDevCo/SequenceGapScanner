@@ -2,7 +2,7 @@ namespace SequenceGapScanner;
 
 public partial class MainForm : Form
 {
-    private const string AppVersion   = "1.2.0";
+    private const string AppVersion   = "1.3.0";
     private const string ReleasesApi  = "https://api.github.com/repos/DrywaterDevCo/SequenceGapScanner/releases/latest";
     private const string TipUrl       = "https://buymeacoffee.com/drywater";
 
