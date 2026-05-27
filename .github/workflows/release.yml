@@ -33,7 +33,7 @@ jobs:
         run: |
           $version = "${{ github.event.release.tag_name }}"
           $files = Get-ChildItem ./publish -File | Where-Object { $_.Extension -ne ".pdb" }
-          Compress-Archive -Path $files.FullName -DestinationPath "SequenceGapScanner-${version}-win-x64.zip"
+          Compress-Archive -Path $files.FullName -DestinationPath "SequenceGapScanner-${version}-Standalone-win-x64.zip"
 
       - name: Build installer
         shell: pwsh
@@ -45,12 +45,12 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ github.event.release.tag_name }}"
-          Rename-Item "installer\SequenceGapScanner-Setup.exe" "SequenceGapScanner-${version}-Setup.exe"
+          Rename-Item "installer\SequenceGapScanner-Setup.exe" "SequenceGapScanner-${version}-Installer-win-x64.exe"
 
       - name: Upload assets
         shell: pwsh
         run: |
           $version = "${{ github.event.release.tag_name }}"
-          gh release upload $version "SequenceGapScanner-${version}-win-x64.zip" "installer\SequenceGapScanner-${version}-Setup.exe"
+          gh release upload $version "SequenceGapScanner-${version}-Standalone-win-x64.zip" "installer\SequenceGapScanner-${version}-Installer-win-x64.exe"
         env:
           GH_TOKEN: ${{ github.token }}
