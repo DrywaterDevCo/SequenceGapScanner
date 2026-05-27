@@ -26,17 +26,29 @@ jobs:
           -p:EnableCompressionInSingleFile=true
           -o ./publish
 
-      - name: Zip
+      - name: Build zip
+        shell: pwsh
         run: |
           $version = "${{ github.event.release.tag_name }}"
           $files = Get-ChildItem ./publish -File | Where-Object { $_.Extension -ne ".pdb" }
           Compress-Archive -Path $files.FullName -DestinationPath "SequenceGapScanner-${version}-win-x64.zip"
-        shell: pwsh
 
-      - name: Upload to release
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $version = "${{ github.event.release.tag_name }}".TrimStart('v')
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=$version installer.iss
+
+      - name: Rename installer
+        shell: pwsh
         run: |
           $version = "${{ github.event.release.tag_name }}"
-          gh release upload $version "SequenceGapScanner-${version}-win-x64.zip"
+          Rename-Item "installer\SequenceGapScanner-Setup.exe" "SequenceGapScanner-${version}-Setup.exe"
+
+      - name: Upload assets
         shell: pwsh
+        run: |
+          $version = "${{ github.event.release.tag_name }}"
+          gh release upload $version "SequenceGapScanner-${version}-win-x64.zip" "installer\SequenceGapScanner-${version}-Setup.exe"
         env:
           GH_TOKEN: ${{ github.token }}
