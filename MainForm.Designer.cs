@@ -35,6 +35,7 @@ partial class MainForm
     private ToolStripMenuItem    menuReadMe;
     private ToolStripSeparator   menuHelpSep;
     private ToolStripMenuItem    menuNicolasCage;
+    private ToolStripMenuItem    menuChangelog;
     private ToolStripSeparator   menuShellExtSep;
     private ToolStripMenuItem    menuInstallShellExt;
     private ToolStripMenuItem    menuUninstallShellExt;
@@ -79,6 +80,7 @@ partial class MainForm
         menuReadMe       = new ToolStripMenuItem("ReadMe");
         menuHelpSep      = new ToolStripSeparator();
         menuNicolasCage       = new ToolStripMenuItem("Nicolas Cage");
+        menuChangelog         = new ToolStripMenuItem("Changelog");
         menuShellExtSep       = new ToolStripSeparator();
         menuInstallShellExt   = new ToolStripMenuItem("Install Explorer Right-Click Menu");
         menuUninstallShellExt = new ToolStripMenuItem("Uninstall Explorer Right-Click Menu");
@@ -187,12 +189,13 @@ partial class MainForm
         menuTip.Click               += menuTip_Click;
         menuGitHub.Click            += menuGitHub_Click;
         menuReadMe.Click            += menuReadMe_Click;
+        menuChangelog.Click         += menuChangelog_Click;
         menuNicolasCage.Click       += menuNicolasCage_Click;
         menuInstallShellExt.Click   += menuInstallShellExt_Click;
         menuUninstallShellExt.Click += menuUninstallShellExt_Click;
         helpMenuItem.DropDownItems.AddRange(new ToolStripItem[]
         {
-            menuAbout, menuTip, menuGitHub, menuReadMe, menuHelpSep, menuNicolasCage,
+            menuAbout, menuChangelog, menuTip, menuGitHub, menuReadMe, menuHelpSep, menuNicolasCage,
             menuShellExtSep, menuInstallShellExt, menuUninstallShellExt
         });
         mainMenu.Items.Add(helpMenuItem);

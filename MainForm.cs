@@ -4,12 +4,31 @@ namespace SequenceGapScanner;
 
 public partial class MainForm : Form
 {
-    private const string AppVersion   = "1.4.0";
+    private const string AppVersion   = "1.4.1";
     private const string ReleasesApi  = "https://api.github.com/repos/DrywaterDevCo/SequenceGapScanner/releases/latest";
     private const string TipUrl       = "https://buymeacoffee.com/drywater";
 
     private string? _updateUrl;
     private readonly string? _startupFolder;
+    private string? _lastSeenVersion;
+
+    private static readonly (string Version, string Notes)[] Changelog =
+    {
+        ("1.4.1",
+            "• What's New dialog on first launch after each update — shows only what changed since your last version.\n" +
+            "• Help → Changelog — view the full version history any time.\n" +
+            "• Fixed text touching the edges inside the What's New dialog."),
+        ("1.4.0",
+            "• Explorer right-click menu — right-click any folder in Windows Explorer and choose \"Check for Missing Files\" to scan it instantly.\n" +
+            "• Install or remove the shell extension anytime via Help → Install/Uninstall Explorer Right-Click Menu."),
+        ("1.3.1",
+            "• Fixed incorrect dates in generated missing filenames when a scan folder contains files from multiple dates."),
+        ("1.3.0",
+            "• Collapsible group rows — click a group header to expand/collapse.\n" +
+            "• Context menu on file rows: Reveal in Explorer, Copy Full Path, Copy Expected Filename.\n" +
+            "• Automatic update check on launch with a clickable status-bar link.\n" +
+            "• Help menu with About, GitHub, ReadMe, and Tip the Author."),
+    };
 
     private Font _headerFont = null!;
 
@@ -52,11 +71,29 @@ public partial class MainForm : Form
     {
         base.OnLoad(e);
         await CheckForUpdatesAsync();
+        ShowChangelogIfNeeded();
         if (_startupFolder != null)
         {
             folderPathBox.Text = _startupFolder;
             scanButton_Click(this, EventArgs.Empty);
         }
+    }
+
+    private void ShowChangelogIfNeeded()
+    {
+        if (_lastSeenVersion == AppVersion) return;
+
+        Version.TryParse(_lastSeenVersion, out var lastSeen);
+
+        var toShow = Changelog
+            .Where(e => !Version.TryParse(e.Version, out var v) || lastSeen == null || v > lastSeen)
+            .ToList();
+
+        if (toShow.Count > 0)
+            new WhatsNewForm(toShow).ShowDialog(this);
+
+        _lastSeenVersion = AppVersion;
+        SaveSettings();
     }
 
     private async Task CheckForUpdatesAsync()
@@ -121,8 +158,9 @@ public partial class MainForm : Form
         {
             if (!File.Exists(SettingsPath)) return;
             var lines = File.ReadAllLines(SettingsPath);
-            if (lines.Length > 0) folderPathBox.Text = lines[0];
-            if (lines.Length > 1) extFilterBox.Text  = lines[1];
+            if (lines.Length > 0) folderPathBox.Text  = lines[0];
+            if (lines.Length > 1) extFilterBox.Text   = lines[1];
+            if (lines.Length > 2) _lastSeenVersion    = lines[2];
         }
         catch { }
     }
@@ -132,8 +170,12 @@ public partial class MainForm : Form
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
-            File.WriteAllLines(SettingsPath,
-                new[] { folderPathBox.Text.Trim(), extFilterBox.Text.Trim() });
+            File.WriteAllLines(SettingsPath, new[]
+            {
+                folderPathBox.Text.Trim(),
+                extFilterBox.Text.Trim(),
+                _lastSeenVersion ?? "",
+            });
         }
         catch { }
     }
@@ -352,6 +394,9 @@ public partial class MainForm : Form
 
     private static void RevealInExplorer(string filePath) =>
         System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{filePath}\"");
+
+    private void menuChangelog_Click(object sender, EventArgs e) =>
+        new WhatsNewForm(Changelog).ShowDialog(this);
 
     private void menuAbout_Click(object sender, EventArgs e)
     {
