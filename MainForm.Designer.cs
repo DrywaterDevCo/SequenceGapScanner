@@ -35,6 +35,9 @@ partial class MainForm
     private ToolStripMenuItem    menuReadMe;
     private ToolStripSeparator   menuHelpSep;
     private ToolStripMenuItem    menuNicolasCage;
+    private ToolStripSeparator   menuShellExtSep;
+    private ToolStripMenuItem    menuInstallShellExt;
+    private ToolStripMenuItem    menuUninstallShellExt;
 
     protected override void Dispose(bool disposing)
     {
@@ -75,7 +78,10 @@ partial class MainForm
         menuGitHub       = new ToolStripMenuItem("View on GitHub");
         menuReadMe       = new ToolStripMenuItem("ReadMe");
         menuHelpSep      = new ToolStripSeparator();
-        menuNicolasCage  = new ToolStripMenuItem("Nicolas Cage");
+        menuNicolasCage       = new ToolStripMenuItem("Nicolas Cage");
+        menuShellExtSep       = new ToolStripSeparator();
+        menuInstallShellExt   = new ToolStripMenuItem("Install Explorer Right-Click Menu");
+        menuUninstallShellExt = new ToolStripMenuItem("Uninstall Explorer Right-Click Menu");
         fileContextMenu      = new ContextMenuStrip();
         menuRevealInExplorer = new ToolStripMenuItem("Reveal in Explorer");
         menuCopyPath         = new ToolStripMenuItem("Copy Full Path");
@@ -177,14 +183,17 @@ partial class MainForm
         resultsListView.DoubleClick += resultsListView_DoubleClick;
 
         // ── main menu ────────────────────────────────────────────────────────
-        menuAbout.Click       += menuAbout_Click;
-        menuTip.Click         += menuTip_Click;
-        menuGitHub.Click      += menuGitHub_Click;
-        menuReadMe.Click      += menuReadMe_Click;
-        menuNicolasCage.Click += menuNicolasCage_Click;
+        menuAbout.Click             += menuAbout_Click;
+        menuTip.Click               += menuTip_Click;
+        menuGitHub.Click            += menuGitHub_Click;
+        menuReadMe.Click            += menuReadMe_Click;
+        menuNicolasCage.Click       += menuNicolasCage_Click;
+        menuInstallShellExt.Click   += menuInstallShellExt_Click;
+        menuUninstallShellExt.Click += menuUninstallShellExt_Click;
         helpMenuItem.DropDownItems.AddRange(new ToolStripItem[]
         {
-            menuAbout, menuTip, menuGitHub, menuReadMe, menuHelpSep, menuNicolasCage
+            menuAbout, menuTip, menuGitHub, menuReadMe, menuHelpSep, menuNicolasCage,
+            menuShellExtSep, menuInstallShellExt, menuUninstallShellExt
         });
         mainMenu.Items.Add(helpMenuItem);
 

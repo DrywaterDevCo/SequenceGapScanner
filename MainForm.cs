@@ -1,12 +1,15 @@
+using Microsoft.Win32;
+
 namespace SequenceGapScanner;
 
 public partial class MainForm : Form
 {
-    private const string AppVersion   = "1.3.1";
+    private const string AppVersion   = "1.4.0";
     private const string ReleasesApi  = "https://api.github.com/repos/DrywaterDevCo/SequenceGapScanner/releases/latest";
     private const string TipUrl       = "https://buymeacoffee.com/drywater";
 
     private string? _updateUrl;
+    private readonly string? _startupFolder;
 
     private Font _headerFont = null!;
 
@@ -33,8 +36,9 @@ public partial class MainForm : Form
     private static readonly string SettingsPath = Path.Combine(
         Application.UserAppDataPath, "settings.txt");
 
-    public MainForm()
+    public MainForm(string? startupFolder = null)
     {
+        _startupFolder = startupFolder;
         InitializeComponent();
         _headerFont = new Font(resultsListView.Font, FontStyle.Bold);
         this.Text   = $"Sequence Gap Scanner  v{AppVersion}";
@@ -48,6 +52,11 @@ public partial class MainForm : Form
     {
         base.OnLoad(e);
         await CheckForUpdatesAsync();
+        if (_startupFolder != null)
+        {
+            folderPathBox.Text = _startupFolder;
+            scanButton_Click(this, EventArgs.Empty);
+        }
     }
 
     private async Task CheckForUpdatesAsync()
@@ -379,6 +388,62 @@ public partial class MainForm : Form
             FileName        = TipUrl,
             UseShellExecute = true,
         });
+    }
+
+    // ── shell extension install / uninstall ──────────────────────────────────
+
+    private void menuInstallShellExt_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            var exe     = Application.ExecutablePath;
+            var command = $"\"{exe}\" \"%1\"";
+            var commandBg = $"\"{exe}\" \"%V\"";
+
+            using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\Directory\shell\SequenceGapScanner"))
+            {
+                key.SetValue("", "Check for Missing Files");
+                key.SetValue("Icon", $"{exe},0");
+            }
+            using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\Directory\shell\SequenceGapScanner\command"))
+                key.SetValue("", command);
+
+            using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\Directory\Background\shell\SequenceGapScanner"))
+            {
+                key.SetValue("", "Check for Missing Files");
+                key.SetValue("Icon", $"{exe},0");
+            }
+            using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\Directory\Background\shell\SequenceGapScanner\command"))
+                key.SetValue("", commandBg);
+
+            MessageBox.Show(
+                "Shell extension installed.\n\nRight-click any folder in Explorer to use \"Check for Missing Files\".",
+                "Installed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Install failed: {ex.Message}", "Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void menuUninstallShellExt_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Registry.CurrentUser.DeleteSubKeyTree(
+                @"Software\Classes\Directory\shell\SequenceGapScanner", throwOnMissingSubKey: false);
+            Registry.CurrentUser.DeleteSubKeyTree(
+                @"Software\Classes\Directory\Background\shell\SequenceGapScanner", throwOnMissingSubKey: false);
+
+            MessageBox.Show("Shell extension uninstalled.", "Uninstalled",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Uninstall failed: {ex.Message}", "Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     // ── list-view population ─────────────────────────────────────────────────
